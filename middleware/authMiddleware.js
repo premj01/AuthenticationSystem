@@ -2,7 +2,8 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const userModel = require('../model/user.model')
-
+const getOTP = require('../utils/OTPGenerator')
+const { v4: uuidv4 } = require('uuid');
 
 // let salt = bcrypt.genSaltSync(10);
 
@@ -60,8 +61,14 @@ const varifyUser = (req, res, next) => {
 }
 
 const register = (req, res, next) => {
-  const { username, email, } = req.body
+  const { username, mail, password } = req.body
+  const otpNumber = getOTP();
+  const UniqueID = uuidv4();
+
+
 }
+
+register({ body: { username: "prem", mail: "brocode", password: "fgrsdtgg" } }, 0, 0)
 
 const validOTP = (req, res, next) => {
 
@@ -74,3 +81,5 @@ const signIn = (req, res, next) => {
 const signOut = (req, res, next) => {
 
 }
+
+
