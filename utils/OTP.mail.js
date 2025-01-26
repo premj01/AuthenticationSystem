@@ -9,8 +9,12 @@ var transporter = nodemailer.createTransport({
   },
 });
 
-function sendMail({ receversMail, subject, userOTP, headLine, body }) {
-  let content = body || `
+const sendMail = async ({ receversMail, subject, userOTP, headLine, body }) => {
+
+  return new Promise((resolve, reject) => {
+
+
+    let content = body || `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -86,20 +90,24 @@ function sendMail({ receversMail, subject, userOTP, headLine, body }) {
 </html>
 `;
 
-  let mailOptions = {
-    from: mailid,
-    to: receversMail,
-    subject: subject || "OTP Varification",
-    html: content,
-  };
+    let mailOptions = {
+      from: mailid,
+      to: receversMail,
+      subject: subject || "OTP Varification",
+      html: content,
+    };
 
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("Email sent to : " + receversMail + info.response);
-    }
-  });
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+        reject(false);
+      } else {
+        console.log("Email sent to : " + receversMail + info.response);
+        resolve(true);
+      }
+    });
+  })
+
 }
 
 // sendMail({ userOTP: Math.floor(Math.random() * 900000) + 100000, headLine: "Registration OTP" });

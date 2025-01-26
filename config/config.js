@@ -7,4 +7,5 @@ module.exports = {
   db: process.env.MONGODB,
   mailid: process.env.MAILID,
   mailpass: process.env.MAILPASS,
+  secretKey: process.env.SECRETKEY
 }
