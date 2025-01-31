@@ -37,8 +37,34 @@ const { use } = require('passport');
 
 
 
-const varifyUser = (req, res, next) => {
+const varifyUser = async (req, res, next) => {
+  try {
+    const { SecCode } = req.body;
 
+    if (!SecCode) {
+      return res.status(404).json({ message: "You need to SignIn...", status: false });
+    }
+
+    jwt.verify(SecCode, secretKey, async (err, decode) => {
+
+      if (err) {
+        return res.status(404).json({ message: 'Something is wrong here... please login again', status: false })
+      }
+
+      const fetchedUserInfo = await userModel.findOne({ mail: decode.mail, uid: decode.uid });
+
+      if (fetchedUserInfo) {
+        next();
+      } else {
+        return res.status(404).json({ message: "You need to SignIn...", status: false });
+      }
+
+    })
+
+  } catch (error) {
+    console.log(error);
+
+  }
 }
 
 const register = async (req, res, next) => {
@@ -108,8 +134,8 @@ const register = async (req, res, next) => {
 
 
 const validOTP = async (req, res, next) => {
-  try {
 
+  try {
     const { SecCode, otp } = req.body;
 
     if (!(SecCode && otp)) {
@@ -119,33 +145,42 @@ const validOTP = async (req, res, next) => {
     jwt.verify(SecCode, secretKey, async function (err, decoded) {
 
       if (err) {
-        return res.status(401).json({ message: 'Suspicious activity detected' });
+        return res.status(401).json({ message: 'Oops..Your OTP has been expired!!' });
+      }
+
+      const isUserAlreadyExist = await userModel.findOne({ mail: decoded.mail });
+      if (isUserAlreadyExist) {
+        return res.status(400).json({ message: 'user already exists' });
       }
 
       const userRecord = await tempUser.findOne({ mail: decoded.mail, uniqueid: decoded.uid });
 
       if (!userRecord) {
-        return res.status(404).json({ message: "Suspicious activity detected : can you plz do one more atempt" });
+        return res.status(404).json({ message: 'Suspicious activity detected : can you plz do one more atempt' });
       }
 
-      if (otp === userRecord.otp) {
+      const UniqueID = uuidv4();
 
+      if (otp === userRecord.otp) {
         const user = new userModel({
-          userName: userRecord.userName, mail: userRecord.mail, password: userRecord.password, expiry: new Date(new Date().getTime() + 120 * 60000)
+          userName: userRecord.userName,
+          mail: userRecord.mail,
+          password: userRecord.password,
+          expiry: new Date(new Date().getTime() + 120 * 60000),
+          uid: UniqueID,
         })
         const savedRecoed = await user.save();
 
-        jwt.sign({ mail: savedRecoed.mail, exp: savedRecoed.expiry }, secretKey, { expiresIn: '2h' }, function (err, token) {
+        jwt.sign({ mail: savedRecoed.mail, uid: savedRecoed.uid }, secretKey, { expiresIn: '120m' }, function (err, token) {
           if (err) {
             console.log("JWT error" + err);
             return res.status(500).json({ message: "Internal Server Error" })
           }
 
-          return res.status(200).json({ redirect: "/", message: 'Varification Successful', Sec: token });
+          return res.status(200).json({ redirect: "/", message: 'Varification Successful', SecCode: token });
         });
 
 
-        res.json({})
       } else {
         return res.status(400).json({ message: 'Incorrect OTP' });
       }
@@ -153,13 +188,63 @@ const validOTP = async (req, res, next) => {
 
   } catch (error) {
     console.log(error);
-
+    res.status(500).json({ message: "Currently Service unavalilable...Please Contact for any kind of help" })
   }
 
 }
 
-const signIn = (req, res, next) => {
+const signIn = async (req, res, next) => {
 
+  try {
+    const { mail, password } = req.body;
+
+    if (!(mail && password)) {
+      return res.status(404).json({ message: 'Chill bro we have Highlevel of Security', code: '01000110 01110101 01100011 01101011 00100000 01111001 01101111 01110101' })
+    }
+
+    const UserInfoExist = await userModel.findOne({ mail: mail });
+
+    if (UserInfoExist) {
+      bcrypt.compare(password, UserInfoExist.password).then(async (isMatched) => {
+        if (!isMatched) {
+          return res.status(401).json({ message: "Wrong Password" });
+        } else {
+
+          const UniqueID = uuidv4();
+
+          const updatedUser = await userModel.findByIdAndUpdate(UserInfoExist._id, { uid: UniqueID, expiry: new Date(new Date().getTime() + 120 * 60000) }, { new: true, runValidators: true });
+
+          jwt.sign({ mail: UserInfoExist.mail, uid: updatedUser.uid }, secretKey, { expiresIn: '120m' }, (err, token) => {
+
+            if (err) {
+              console.log("JWT error" + err);
+              return res.status(500).json({ message: "Internal Server Error" })
+            }
+
+            return res.status(200).json(
+              {
+                username: UserInfoExist.userName,
+                mail: UserInfoExist.mail,
+                expiry: UserInfoExist.expiry.toString(),
+                SecCode: token,
+                redirect: "/",
+                message: 'SignIn Successful',
+                status: true,
+              })
+          })
+        }
+
+      })
+
+    } else {
+      return res.status(404).json({ message: 'User not exist !!', status: false })
+    }
+
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Internal Server Error!?' });
+  }
 }
 
 const signOut = (req, res, next) => {
@@ -167,4 +252,4 @@ const signOut = (req, res, next) => {
 }
 
 
-module.exports = { register, validOTP };
+module.exports = { register, validOTP, signIn, varifyUser };

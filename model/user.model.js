@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema({
   expiry: {
     type: Date,
     required: true
+  },
+  uid: {
+    type: String
   }
 
 }, {
