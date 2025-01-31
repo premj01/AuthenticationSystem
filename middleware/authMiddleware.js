@@ -6,34 +6,6 @@ const { v4: uuidv4 } = require('uuid');
 const sendMail = require('../utils/OTP.mail')
 const { secretKey } = require('../config/config')
 const isEmailValid = require('../utils/validateMail');
-const { use } = require('passport');
-// let salt = bcrypt.genSaltSync(10);
-
-
-
-// const prem = async () => {
-//   const obj = await User.findOne({ mail: 'premj12@gmail.com' })
-
-//   if (obj) {
-//     bcrypt.compare("premJadhavBro", obj.password).then((res) => {
-//       res ? console.log("Nice dude") : console.log("fuck you")
-
-//     });
-
-//   } else {
-//     console.log("user not valid ");
-
-//   }
-
-
-
-// }
-
-// prem();
-
-// bcrypt.compare("B4c0/\/", hash).then((res) => {
-//   // res === true
-// });
 
 
 
